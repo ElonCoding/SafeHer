@@ -60,7 +60,7 @@ class _ActivityMonitorViewState extends State<ActivityMonitorView> {
     print('[TFLITE] Attempting to download model and load labels...');
     try {
       // Download model from web
-      final url = 'https://github.com/budd9442/SafeStep/raw/refs/heads/master/assets/model.tflite';
+      final url = 'https://github.com/budd9442/safeher/raw/refs/heads/master/assets/model.tflite';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
         print('[TFLITE][ERROR] Failed to download model: HTTP \\${response.statusCode}');
@@ -240,3 +240,4 @@ class _ActivityMonitorViewState extends State<ActivityMonitorView> {
     );
   }
 }
+

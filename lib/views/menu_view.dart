@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:safestep/views/fake_call_view.dart';
-import 'package:safestep/views/close_contacts_view.dart';
-import 'package:safestep/views/safe_chat_view.dart';
-import 'package:safestep/views/report_danger_zone_view.dart';
-import 'package:safestep/views/about_us_view.dart';
-import 'package:safestep/views/debug_screen.dart';
-import 'package:safestep/views/activity_monitor_view.dart';
+import 'package:safeher/views/fake_call_view.dart';
+import 'package:safeher/views/close_contacts_view.dart';
+import 'package:safeher/views/safe_chat_view.dart';
+import 'package:safeher/views/report_danger_zone_view.dart';
+import 'package:safeher/views/about_us_view.dart';
+import 'package:safeher/views/debug_screen.dart';
+import 'package:safeher/views/activity_monitor_view.dart';
 import 'package:latlong2/latlong.dart';
 
 class MenuView extends StatefulWidget {
@@ -162,3 +162,4 @@ class _MenuTile extends StatelessWidget {
     );
   }
 }
+

@@ -9,7 +9,7 @@ class AboutUsView extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(24.0),
         child: Text(
-          'SafeStep is dedicated to empowering women with safety tools, psychological support, and community features. Our mission is to make every step safer.',
+          'safeher is dedicated to empowering women with safety tools, psychological support, and community features. Our mission is to make every step safer.',
           style: TextStyle(fontSize: 16),
           textAlign: TextAlign.center,
         ),
@@ -19,3 +19,4 @@ class AboutUsView extends StatelessWidget {
     return Scaffold(appBar: AppBar(title: const Text('About Us')), body: content);
   }
 }
+

@@ -61,6 +61,8 @@ class _FakeCallViewState extends State<FakeCallView> {
     },
   ];
 
+  static const _prefsChannel = MethodChannel('com.example.safeher/prefs');
+
   @override
   void initState() {
     super.initState();
@@ -153,7 +155,7 @@ class _FakeCallViewState extends State<FakeCallView> {
   }
 
   Future<void> triggerFakeCallSystem({required String callerName, required String callerNumber, required String audioAsset}) async {
-    const platform = MethodChannel('com.example.safestep/fakecall');
+    const platform = MethodChannel('com.example.safeher/fakecall');
     String? audioPath;
     if (audioAsset.isNotEmpty) {
       audioPath = await _copyAssetToCache(audioAsset);
@@ -172,9 +174,18 @@ class _FakeCallViewState extends State<FakeCallView> {
     }
   }
 
+  Future<void> _saveFakeCallPrefs() async {
+    await _prefsChannel.invokeMethod('saveFakeCallPrefs', {
+      'callerName': _callerName,
+      'callerNumber': _callerNumber,
+      'audioAsset': _selectedRecording ?? '',
+    });
+  }
+
   void _simulateCall() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
+    await _saveFakeCallPrefs();
     setState(() => _isCalling = true);
     if (Platform.isAndroid) {
       await _ensurePhoneNumberPermission();
@@ -282,6 +293,7 @@ class _FakeCallViewState extends State<FakeCallView> {
       _callerNumber = template['callerNumber'] ?? '';
       _selectedRecording = template['asset'] ?? '';
     });
+    _saveFakeCallPrefs();
   }
 
   @override
@@ -416,6 +428,34 @@ class _FakeCallViewState extends State<FakeCallView> {
                         onPressed: _isCalling ? null : _simulateCall,
                         label: const Text('Simulate Fake Call'),
                       ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.bug_report, color: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        ),
+                        onPressed: _isCalling
+                            ? null
+                            : () async {
+                                // Hardcoded test values for debug
+                                setState(() => _isCalling = true);
+                                if (Platform.isAndroid) {
+                                  await _ensurePhoneNumberPermission();
+                                  await triggerFakeCallSystem(
+                                    callerName: 'Test Caller',
+                                    callerNumber: '5551234567',
+                                    audioAsset: '',
+                                  );
+                                } else {
+                                  _showFakeCallDialog();
+                                }
+                                setState(() => _isCalling = false);
+                              },
+                        label: const Text('Test Native Fake Call'),
+                      ),
                     ],
                   ),
                 ),
@@ -437,3 +477,4 @@ class _FakeCallViewState extends State<FakeCallView> {
     );
   }
 }
+

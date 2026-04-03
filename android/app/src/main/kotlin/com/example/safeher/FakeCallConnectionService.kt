@@ -1,4 +1,4 @@
-package com.example.safestep
+package com.example.safeher
 
 import android.content.Context
 import android.media.MediaPlayer
@@ -25,12 +25,20 @@ class FakeCallConnectionService : ConnectionService() {
         val extras = request?.extras
         currentCallerName = extras?.getString("callerName") ?: "Unknown"
         currentCallerNumber = extras?.getString("callerNumber") ?: ""
-        // Only use "audioPath"; asset-to-cache is always handled by Flutter
         currentAudioPath = extras?.getString("audioPath")
         val connection = object : Connection() {
             override fun onAnswer() {
                 setActive()
                 playSelectedAudio()
+                val intent = android.content.Intent("com.example.safeher.FAKE_CALL_ACCEPTED")
+                sendBroadcast(intent)
+            }
+            override fun onReject() {
+                setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
+                stopAudio()
+                destroy()
+                val intent = android.content.Intent("com.example.safeher.FAKE_CALL_REJECTED")
+                sendBroadcast(intent)
             }
             override fun onDisconnect() {
                 setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
@@ -46,39 +54,35 @@ class FakeCallConnectionService : ConnectionService() {
 
     private fun playSelectedAudio() {
         stopAudio()
-        val path = currentAudioPath ?: run {
-            android.util.Log.e("FakeCall", "No audio path provided!")
-            return
+        val path = currentAudioPath ?: return
+        var resolvedPath = path
+        if (!File(path).exists() && path.startsWith("assets/")) {
+            try {
+                val cacheFile = File(cacheDir, File(path).name)
+                if (!cacheFile.exists()) {
+                    val assetManager = applicationContext.assets
+                    assetManager.open(path.removePrefix("assets/")).use { input ->
+                        FileOutputStream(cacheFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                resolvedPath = cacheFile.absolutePath
+            } catch (_: Exception) {}
         }
-        android.util.Log.i("FakeCall", "Attempting to play audio from path: $path")
         try {
-            val file = File(path)
-            android.util.Log.i("FakeCall", "File exists: ${file.exists()} | Size: ${if (file.exists()) file.length() else 0}")
+            val file = File(resolvedPath)
             if (file.exists()) {
                 mediaPlayer = MediaPlayer().apply {
                     setAudioStreamType(android.media.AudioManager.STREAM_VOICE_CALL)
                     setDataSource(file.absolutePath)
-                    setOnPreparedListener {
-                        android.util.Log.i("FakeCall", "MediaPlayer prepared, starting playback.")
-                        start() 
-                    }
-                    setOnCompletionListener { 
-                        android.util.Log.i("FakeCall", "MediaPlayer completed playback.")
-                        stopAudio() 
-                    }
-                    setOnErrorListener { mp, what, extra ->
-                        android.util.Log.e("FakeCall", "MediaPlayer error: what=$what, extra=$extra")
-                        stopAudio()
-                        true
-                    }
+                    setOnPreparedListener { start() }
+                    setOnCompletionListener { stopAudio() }
+                    setOnErrorListener { _, _, _ -> stopAudio(); true }
                     prepareAsync()
                 }
-            } else {
-                android.util.Log.e("FakeCall", "Audio file not found: $path")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("FakeCall", "Exception during audio playback: ${e.message}", e)
-        }
+        } catch (_: Exception) {}
     }
 
     private fun stopAudio() {
@@ -87,3 +91,4 @@ class FakeCallConnectionService : ConnectionService() {
         mediaPlayer = null
     }
 }
+

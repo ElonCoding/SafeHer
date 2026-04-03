@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="safestep"
+        android:label="safeher"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -51,6 +51,18 @@
                 <action android:name="android.telecom.ConnectionService" />
             </intent-filter>
         </service>
+        <service
+            android:name=".ShakeDetectionService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice">
+        </service>
+        <service
+            android:name=".DangerZoneService"
+            android:enabled="true"
+            android:exported="false" />
+        <!-- Removed VolumeButtonAccessibilityService registration as part of undoing volume button detection. -->
+        <!-- Removed all hardware button detection services and receivers (VolumeButtonService, PowerButtonReceiver, AccessibilityService) as part of cleanup. -->
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -147,3 +159,4 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 </manifest>
+
