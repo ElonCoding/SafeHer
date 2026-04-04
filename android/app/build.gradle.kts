@@ -6,11 +6,6 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// Ensure Google Services is properly configured
-googleServices {
-    disableVersionCheck = false
-}
-
 android {
     namespace = "com.example.safeher"
     compileSdk = flutter.compileSdkVersion
@@ -60,8 +55,6 @@ dependencies {
     
     implementation("com.google.firebase:firebase-firestore-ktx:24.11.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-base:18.2.0")
     // ...existing dependencies...
 }
 
