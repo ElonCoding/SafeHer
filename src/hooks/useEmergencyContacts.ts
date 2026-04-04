@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export const useEmergencyContacts = () => {
   const { user } = useAuth();
@@ -33,7 +34,11 @@ export const useAddEmergencyContact = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["emergency_contacts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["emergency_contacts"] });
+      toast.success("Contact saved successfully");
+    },
+    onError: (err) => toast.error(err.message || "Failed to save contact"),
   });
 };
 
@@ -45,6 +50,10 @@ export const useDeleteEmergencyContact = () => {
       const { error } = await supabase.from("emergency_contacts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["emergency_contacts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["emergency_contacts"] });
+      toast.success("Contact removed");
+    },
+    onError: (err) => toast.error(err.message || "Failed to remove contact"),
   });
 };

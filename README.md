@@ -15,9 +15,10 @@ Safe-Her is a comprehensive personal safety application designed to provide secu
 ## 🚀 Tech Stack
 
 - **Frontend**: React 18, Vite, TypeScript
+- **Backend Service**: Node.js, Express (separate `backend/` directory)
+- **Database/Auth**: Supabase (utilizing Postgres and Edge Functions)
 - **Styling**: Tailwind CSS, Shadcn/UI, Framer Motion
 - **State Management**: TanStack Query (React Query)
-- **Backend/Auth**: Supabase
 - **Maps**: Leaflet
 - **Testing**: Vitest, Playwright
 
@@ -56,7 +57,14 @@ Safe-Her is a comprehensive personal safety application designed to provide secu
    supabase_url = "your_supabase_url"
    supabase_anon_key = "your_supabase_anon_key"
    ```
-5. Start the development server:
+6. Start the backend server:
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+7. Start the development server (Frontend):
    ```bash
    npm run dev
    ```

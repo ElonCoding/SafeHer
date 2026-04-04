@@ -4,6 +4,7 @@ import {
   ChevronRight, Trash2, Navigation, Bell, BellOff, UserPlus, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +72,7 @@ const DEMO_TRIPS: Trip[] = [
 
 const TripsPage = () => {
   const { user, isDemo } = useAuth();
-  const [view, setView] = useState<"list" | "create" | "detail">("list");
+  const [view, setView] = useState<"list" | "create" | "detail" | "analytics">("list");
   const [trips, setTrips] = useState<Trip[]>(DEMO_TRIPS);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
@@ -401,6 +402,72 @@ const TripsPage = () => {
     );
   }
 
+  // Analytics View
+  if (view === "analytics") {
+    const tripFrequencyData = [
+      { name: 'Mon', trips: 1 },
+      { name: 'Tue', trips: 0 },
+      { name: 'Wed', trips: 2 },
+      { name: 'Thu', trips: 1 },
+      { name: 'Fri', trips: 3 },
+      { name: 'Sat', trips: 4 },
+      { name: 'Sun', trips: 2 },
+    ];
+    const safetyScoreData = [
+      { name: 'Week 1', score: 85 },
+      { name: 'Week 2', score: 88 },
+      { name: 'Week 3', score: 92 },
+      { name: 'Week 4', score: 90 },
+    ];
+
+    return (
+      <div className="px-4 pt-4 pb-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView("list")}>
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+          </button>
+          <div>
+            <h1 className="text-xl font-black text-foreground">Analytics</h1>
+            <p className="text-xs text-muted-foreground">Your safety and trip history</p>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 space-y-4">
+          <h2 className="text-sm font-bold text-foreground">Weekly Trip Frequency</h2>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={tripFrequencyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                />
+                <Bar dataKey="trips" fill="hsl(262, 95%, 58%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-4 space-y-4">
+          <h2 className="text-sm font-bold text-foreground">Average Safety Score</h2>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={safetyScoreData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                <XAxis dataKey="name" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                />
+                <Line type="monotone" dataKey="score" stroke="hsl(142, 70%, 45%)" strokeWidth={3} dot={{ fill: "hsl(142, 70%, 45%)", r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Trip list
   return (
     <div className="px-4 pt-4 pb-4 space-y-4">
@@ -409,9 +476,14 @@ const TripsPage = () => {
           <h1 className="text-2xl font-black text-foreground">My Trips</h1>
           <p className="text-sm text-muted-foreground">Plan & share your travel safely</p>
         </div>
-        <Button size="sm" onClick={() => setView("create")} className="text-xs">
-          <Plus className="w-3.5 h-3.5 mr-1" /> New Trip
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setView("analytics")} className="text-xs">
+            Analytics
+          </Button>
+          <Button size="sm" onClick={() => setView("create")} className="text-xs">
+            <Plus className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

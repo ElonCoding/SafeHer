@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { type Category, type Severity, CATEGORIES, SEVERITY_CONFIG } from "@/data/incidentTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 
 interface Incident {
   id: string;
@@ -60,6 +61,8 @@ const IncidentsPage = () => {
   useEffect(() => {
     fetchIncidents();
   }, []);
+
+  useRealtimeData<Incident>("incidents", setIncidents);
 
   const resetForm = () => {
     setCategory(null);

@@ -6,36 +6,39 @@ import SOSButton from "@/components/SOSButton";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type { IncidentMarker } from "@/data/incidents";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [incidents, setIncidents] = useState<IncidentMarker[]>([]);
+  // We'll store DB incidents directly to easily work with useRealtimeData
+  const [dbIncidents, setDbIncidents] = useState<any[]>([]);
+
+  // Map to the marker format expected by SafeMap
+  const incidents: IncidentMarker[] = dbIncidents.map((d) => ({
+    id: d.id,
+    category: d.category,
+    severity: d.severity,
+    title: d.title,
+    lat: d.location_lat || d.lat, // Handle insert mapping format gap
+    lng: d.location_lng || d.lng,
+    locationName: d.location_name,
+    upvotes: d.upvotes,
+    createdAt: d.created_at,
+  }));
 
   useEffect(() => {
     supabase
       .from("incidents")
-      .select("id, category, severity, title, location_lat, location_lng, location_name, upvotes, created_at")
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(20)
       .then(({ data }) => {
-        if (data) {
-          setIncidents(
-            data.map((d: any) => ({
-              id: d.id,
-              category: d.category,
-              severity: d.severity,
-              title: d.title,
-              lat: d.location_lat,
-              lng: d.location_lng,
-              locationName: d.location_name,
-              upvotes: d.upvotes,
-              createdAt: d.created_at,
-            }))
-          );
-        }
+        if (data) setDbIncidents(data);
       });
   }, []);
+
+  useRealtimeData("incidents", setDbIncidents);
   return (
     <div className="relative min-h-screen bg-mesh pb-24">
       {/* Header */}

@@ -20,6 +20,9 @@ const LiveTrackingPage = () => {
     { id: string; name: string; lat: number; lng: number; timestamp: number }[]
   >([]);
 
+  // Wire up the real broadcast hook
+  const realPositions = useTrackMultipleLocations(contacts?.map((c) => c.id) || []);
+
   // Fallback position when geolocation is unavailable (Delhi center)
   const effectivePosition = position || (sharing ? { lat: 28.6139, lng: 77.209 } : null);
 
@@ -52,13 +55,16 @@ const LiveTrackingPage = () => {
     // Initial set
     const baseContacts = contacts?.slice(0, 3) || [];
     const initialUsers = baseContacts.length > 0
-      ? baseContacts.map((c, i) => ({
-          id: c.id,
-          name: c.name,
-          lat: effectivePosition.lat + (i + 1) * 0.002,
-          lng: effectivePosition.lng + (i + 1) * 0.001,
-          timestamp: Date.now(),
-        }))
+      ? baseContacts.map((c, i) => {
+          const real = realPositions[c.id];
+          return {
+            id: c.id,
+            name: c.name,
+            lat: real ? real.lat : effectivePosition.lat + (i + 1) * 0.002,
+            lng: real ? real.lng : effectivePosition.lng + (i + 1) * 0.001,
+            timestamp: real ? real.timestamp : Date.now(),
+          };
+        })
       : [
           { id: "demo-1", name: "Mom", lat: effectivePosition.lat + 0.002, lng: effectivePosition.lng + 0.001, timestamp: Date.now() },
           { id: "demo-2", name: "Best Friend", lat: effectivePosition.lat + 0.004, lng: effectivePosition.lng + 0.002, timestamp: Date.now() },
@@ -66,7 +72,7 @@ const LiveTrackingPage = () => {
     setDemoTrackedUsers(initialUsers);
 
     return () => clearInterval(interval);
-  }, [sharing, effectivePosition?.lat, effectivePosition?.lng, contacts]);
+  }, [sharing, effectivePosition?.lat, effectivePosition?.lng, contacts, realPositions]);
 
   const shareLink = () => {
     const link = `${window.location.origin}/track/${user?.id}`;
