@@ -1,6 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import { Search, MapPin, Loader2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+export interface AIPlaceSelectorHandle {
+  /** Programmatically set the display text without triggering onPlaceSelect */
+  setDisplayValue: (value: string) => void;
+  /** Clear the input field */
+  clear: () => void;
+}
 
 interface AIPlaceSelectorProps {
   id: string;
@@ -9,21 +16,49 @@ interface AIPlaceSelectorProps {
   biasCoords?: { lat: number; lng: number } | null;
   onPlaceSelect: (place: google.maps.places.PlaceResult | null, isCurrentLocation?: boolean) => void;
   defaultValue?: string;
+  /** A controlled display value — when this changes externally, the input updates */
+  displayValue?: string;
   showCurrentLocationAction?: boolean;
 }
 
-const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
+const AIPlaceSelector = forwardRef<AIPlaceSelectorHandle, AIPlaceSelectorProps>(({
   id,
   label,
   placeholder,
   biasCoords,
   onPlaceSelect,
   defaultValue = '',
+  displayValue,
   showCurrentLocationAction = false,
-}) => {
+}, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasValue, setHasValue] = useState(!!defaultValue);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  // Expose imperative methods to parent
+  useImperativeHandle(ref, () => ({
+    setDisplayValue: (value: string) => {
+      if (inputRef.current) {
+        inputRef.current.value = value;
+        setHasValue(!!value);
+      }
+    },
+    clear: () => {
+      if (inputRef.current) {
+        inputRef.current.value = '';
+        setHasValue(false);
+      }
+    },
+  }));
+
+  // Sync with controlled displayValue prop
+  useEffect(() => {
+    if (displayValue !== undefined && inputRef.current) {
+      inputRef.current.value = displayValue;
+      setHasValue(!!displayValue);
+    }
+  }, [displayValue]);
 
   useEffect(() => {
     let checkInterval: NodeJS.Timeout;
@@ -44,7 +79,7 @@ const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
             center: biasCoords,
             radius: 50000, 
          });
-         options.bounds = circle.getBounds();
+         options.bounds = circle.getBounds() ?? undefined;
       }
 
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
@@ -54,7 +89,13 @@ const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
         const place = autocomplete.getPlace();
         if (!place.geometry || !place.geometry.location) {
           onPlaceSelect(null);
+          setHasValue(false);
           return;
+        }
+        // Update input display to the place name
+        if (inputRef.current) {
+          inputRef.current.value = place.name || place.formatted_address || '';
+          setHasValue(true);
         }
         onPlaceSelect(place);
       });
@@ -78,25 +119,36 @@ const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
         window.google?.maps?.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [biasCoords, onPlaceSelect]);
+  }, [biasCoords]);
 
   const handleUseCurrentLocation = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!biasCoords) return;
     
     if (inputRef.current) {
-      inputRef.current.value = "Current Location";
+      inputRef.current.value = "📍 Current Location";
+      setHasValue(true);
     }
     
     // Construct a mock PlaceResult for current location
     const mockPlace = {
       name: "Current Location",
+      formatted_address: "Your current GPS position",
       geometry: {
         location: new window.google.maps.LatLng(biasCoords.lat, biasCoords.lng)
       }
     } as google.maps.places.PlaceResult;
     
     onPlaceSelect(mockPlace, true);
+  };
+
+  const handleClear = () => {
+    if (inputRef.current) {
+      inputRef.current.value = '';
+      inputRef.current.focus();
+      setHasValue(false);
+    }
+    onPlaceSelect(null);
   };
 
   return (
@@ -113,11 +165,19 @@ const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
           defaultValue={defaultValue}
           placeholder={isLoaded ? placeholder : "Loading AI Suggestions..."}
           disabled={!isLoaded}
-          className="w-full h-11 pl-10 pr-4 rounded-xl bg-muted/50 border border-border/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
+          onChange={(e) => setHasValue(!!e.target.value)}
+          className="w-full h-11 pl-10 pr-10 rounded-xl bg-muted/50 border border-border/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
         />
-        {!isLoaded && (
+        {hasValue ? (
+          <button 
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+          >
+            <X className="w-3 h-3 text-muted-foreground" />
+          </button>
+        ) : !isLoaded ? (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
-        )}
+        ) : null}
       </div>
       
       {showCurrentLocationAction && biasCoords && (
@@ -132,6 +192,8 @@ const AIPlaceSelector: React.FC<AIPlaceSelectorProps> = ({
       )}
     </div>
   );
-};
+});
+
+AIPlaceSelector.displayName = 'AIPlaceSelector';
 
 export default AIPlaceSelector;

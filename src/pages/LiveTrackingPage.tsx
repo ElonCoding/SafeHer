@@ -15,65 +15,20 @@ const LiveTrackingPage = () => {
   const { sharing, position, startSharing, stopSharing } = useLocationSharing();
   const { data: contacts } = useEmergencyContacts();
 
-  // For demo: simulate tracked contacts with slight position offsets
-  const [demoTrackedUsers, setDemoTrackedUsers] = useState<
-    { id: string; name: string; lat: number; lng: number; timestamp: number }[]
-  >([]);
-
-  // Wire up the real broadcast hook
+  // Wire up the real broadcast hook for accurate live-tracking
   const realPositions = useTrackMultipleLocations(contacts?.map((c) => c.id) || []);
 
-  // Fallback position when geolocation is unavailable (Delhi center)
-  const effectivePosition = position || (sharing ? { lat: 28.6139, lng: 77.209 } : null);
+  // Map real WebSockets data to the expected format, removing any simulated offset
+  const trackedUsers = (contacts || [])
+    .map((c) => {
+      const real = realPositions[c.id];
+      if (real) return { id: c.id, name: c.name, ...real };
+      return null;
+    })
+    .filter(Boolean) as { id: string; name: string; lat: number; lng: number; timestamp: number }[];
 
-  // Simulate demo tracked contacts with moving positions
-  useEffect(() => {
-    if (!sharing || !effectivePosition) return;
-
-    // Create demo tracked contacts that move slightly around user position
-    const interval = setInterval(() => {
-      const baseContacts = contacts?.slice(0, 3) || [];
-      if (baseContacts.length === 0) {
-        // If no contacts, show demo ones
-        setDemoTrackedUsers([
-          { id: "demo-1", name: "Mom", lat: effectivePosition.lat + Math.sin(Date.now() / 3000) * 0.003 + 0.002, lng: effectivePosition.lng + Math.cos(Date.now() / 4000) * 0.003 + 0.001, timestamp: Date.now() },
-          { id: "demo-2", name: "Best Friend", lat: effectivePosition.lat + Math.sin(Date.now() / 3000 + 2) * 0.003 + 0.004, lng: effectivePosition.lng + Math.cos(Date.now() / 4000 + 3) * 0.003 + 0.002, timestamp: Date.now() },
-        ]);
-        return;
-      }
-      setDemoTrackedUsers(
-        baseContacts.map((c, i) => ({
-          id: c.id,
-          name: c.name,
-          lat: effectivePosition.lat + (Math.sin(Date.now() / 3000 + i * 2) * 0.003) + (i + 1) * 0.002,
-          lng: effectivePosition.lng + (Math.cos(Date.now() / 4000 + i * 3) * 0.003) + (i + 1) * 0.001,
-          timestamp: Date.now(),
-        }))
-      );
-    }, 3000);
-
-    // Initial set
-    const baseContacts = contacts?.slice(0, 3) || [];
-    const initialUsers = baseContacts.length > 0
-      ? baseContacts.map((c, i) => {
-          const real = realPositions[c.id];
-          return {
-            id: c.id,
-            name: c.name,
-            lat: real ? real.lat : effectivePosition.lat + (i + 1) * 0.002,
-            lng: real ? real.lng : effectivePosition.lng + (i + 1) * 0.001,
-            timestamp: real ? real.timestamp : Date.now(),
-          };
-        })
-      : [
-          { id: "demo-1", name: "Mom", lat: effectivePosition.lat + 0.002, lng: effectivePosition.lng + 0.001, timestamp: Date.now() },
-          { id: "demo-2", name: "Best Friend", lat: effectivePosition.lat + 0.004, lng: effectivePosition.lng + 0.002, timestamp: Date.now() },
-        ];
-    setDemoTrackedUsers(initialUsers);
-
-    return () => clearInterval(interval);
-  }, [sharing, effectivePosition?.lat, effectivePosition?.lng, contacts, realPositions]);
-
+  // Rely strictly on device hardware position for accuracy
+  const effectivePosition = position;
   const shareLink = () => {
     const link = `${window.location.origin}/track/${user?.id}`;
     navigator.clipboard?.writeText(link);
@@ -95,7 +50,7 @@ const LiveTrackingPage = () => {
             Solo Sentinel Tracker 
           </h1>
           <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            {sharing ? `Broadcasting • ${demoTrackedUsers.length} observers` : "Network Offline"}
+            {sharing ? `Broadcasting • ${trackedUsers.length} observers` : "Network Offline"}
           </p>
         </div>
         {sharing && (
@@ -107,12 +62,19 @@ const LiveTrackingPage = () => {
 
       {/* Map Content */}
       <div className="flex-1 relative overflow-hidden">
-        {sharing && effectivePosition ? (
-          <LiveTrackingMap
-            className="w-full h-full"
-            trackedUsers={demoTrackedUsers}
-            myPosition={effectivePosition}
-          />
+        {sharing ? (
+          effectivePosition ? (
+            <LiveTrackingMap
+              className="w-full h-full"
+              trackedUsers={trackedUsers}
+              myPosition={effectivePosition}
+            />
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center space-y-4">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground animate-pulse">Acquiring high-accuracy GPS lock...</p>
+            </div>
+          )
         ) : (
           <div className="h-full flex flex-col items-center justify-center gap-8 px-6 text-center">
             <motion.div

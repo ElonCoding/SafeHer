@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import SafeMap from "@/components/SafeMap";
 import { Map, AlertTriangle, Navigation, MapPin, Search, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,17 +6,23 @@ import { DEMO_INCIDENTS, type IncidentMarker } from "@/data/incidents";
 import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import { toast } from "sonner";
-import AIPlaceSelector from "@/components/AIPlaceSelector";
+import AIPlaceSelector, { type AIPlaceSelectorHandle } from "@/components/AIPlaceSelector";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
 const RoutesPage = () => {
   const [incidents, setIncidents] = useState<IncidentMarker[]>([]);
   const [startPoint, setStartPoint] = useState<L.LatLng | null>(null);
+  const [startPointAddress, setStartPointAddress] = useState<string | null>(null);
   const [endPoint, setEndPoint] = useState<L.LatLng | null>(null);
+  const [endPointAddress, setEndPointAddress] = useState<string | null>(null);
   const [routePath, setRoutePath] = useState<{ lat: number; lng: number }[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; time: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const geo = useGeolocation();
+
+  // Refs for imperative control of the search bars
+  const originSelectorRef = useRef<AIPlaceSelectorHandle>(null);
+  const destSelectorRef = useRef<AIPlaceSelectorHandle>(null);
 
   useEffect(() => {
     supabase
@@ -45,21 +51,62 @@ const RoutesPage = () => {
       });
   }, []);
 
-  const handleMapClick = useCallback((latlng: L.LatLng) => {
+  const reverseGeocode = (latlng: L.LatLng): Promise<string> => {
+    return new Promise((resolve) => {
+      if (window.google && window.google.maps) {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat: latlng.lat, lng: latlng.lng } }, (results, status) => {
+          if (status === "OK" && results && results[0]) {
+            resolve(results[0].formatted_address);
+          } else {
+            resolve(`${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`);
+          }
+        });
+      } else {
+        resolve(`${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`);
+      }
+    });
+  };
+
+  const handleMapClick = useCallback(async (latlng: L.LatLng) => {
     if (!startPoint) {
       setStartPoint(latlng);
+      const addr = await reverseGeocode(latlng);
+      setStartPointAddress(addr);
+      originSelectorRef.current?.setDisplayValue(addr);
       toast.info("Start point set. Now click to set destination.");
     } else if (!endPoint) {
       setEndPoint(latlng);
+      const addr = await reverseGeocode(latlng);
+      setEndPointAddress(addr);
+      destSelectorRef.current?.setDisplayValue(addr);
       toast.info("Destination set. Computing optimal route...");
     } else {
-      setStartPoint(latlng);
+      // Reset and start fresh
       setEndPoint(null);
+      setEndPointAddress(null);
+      destSelectorRef.current?.clear();
       setRoutePath([]);
       setRouteInfo(null);
+
+      setStartPoint(latlng);
+      const addr = await reverseGeocode(latlng);
+      setStartPointAddress(addr);
+      originSelectorRef.current?.setDisplayValue(addr);
       toast.info("New start point set.");
     }
   }, [startPoint, endPoint]);
+
+  const resetAll = () => {
+    setStartPoint(null);
+    setEndPoint(null);
+    setStartPointAddress(null);
+    setEndPointAddress(null);
+    setRoutePath([]);
+    setRouteInfo(null);
+    originSelectorRef.current?.clear();
+    destSelectorRef.current?.clear();
+  };
 
   const computeRoute = async () => {
     if (!startPoint || !endPoint) return;
@@ -105,6 +152,7 @@ const RoutesPage = () => {
 
       <div className="mx-4 mb-4 glass-card rounded-[2rem] p-5 space-y-4">
         <AIPlaceSelector
+          ref={originSelectorRef}
           id="route-origin"
           label="Origin Location"
           placeholder="Where are you starting?"
@@ -113,12 +161,15 @@ const RoutesPage = () => {
           onPlaceSelect={(place) => {
             if (place?.geometry?.location) {
               setStartPoint(L.latLng(place.geometry.location.lat(), place.geometry.location.lng()));
+              setStartPointAddress(place.name || place.formatted_address || "Selected Location");
             } else {
               setStartPoint(null);
+              setStartPointAddress(null);
             }
           }}
         />
         <AIPlaceSelector
+          ref={destSelectorRef}
           id="route-destination"
           label="Destination"
           placeholder="Where are you going?"
@@ -126,8 +177,10 @@ const RoutesPage = () => {
           onPlaceSelect={(place) => {
             if (place?.geometry?.location) {
               setEndPoint(L.latLng(place.geometry.location.lat(), place.geometry.location.lng()));
+              setEndPointAddress(place.name || place.formatted_address || "Selected Location");
             } else {
               setEndPoint(null);
+              setEndPointAddress(null);
             }
           }}
         />
@@ -166,8 +219,8 @@ const RoutesPage = () => {
                 <MapPin className={`w-4 h-4 ${startPoint ? 'text-safe' : 'text-muted-foreground'}`} />
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Start</span>
               </div>
-              <p className="text-xs font-bold truncate">
-                {startPoint ? `${startPoint.lat.toFixed(4)}, ${startPoint.lng.toFixed(4)}` : "Select on map"}
+              <p className="text-xs font-bold truncate" title={startPointAddress || ""}>
+                {startPointAddress || (startPoint ? `${startPoint.lat.toFixed(4)}, ${startPoint.lng.toFixed(4)}` : "Select on map")}
               </p>
             </div>
             <div className={`glass-card p-4 rounded-3xl border-l-4 ${endPoint ? 'border-danger' : 'border-muted'}`}>
@@ -175,8 +228,8 @@ const RoutesPage = () => {
                 <Search className={`w-4 h-4 ${endPoint ? 'text-danger' : 'text-muted-foreground'}`} />
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destination</span>
               </div>
-              <p className="text-xs font-bold truncate">
-                {endPoint ? `${endPoint.lat.toFixed(4)}, ${endPoint.lng.toFixed(4)}` : "Select on map"}
+              <p className="text-xs font-bold truncate" title={endPointAddress || ""}>
+                {endPointAddress || (endPoint ? `${endPoint.lat.toFixed(4)}, ${endPoint.lng.toFixed(4)}` : "Select on map")}
               </p>
             </div>
           </motion.div>
@@ -202,12 +255,29 @@ const RoutesPage = () => {
                 </div>
               </div>
               <button 
-                onClick={() => { setStartPoint(null); setEndPoint(null); setRoutePath([]); setRouteInfo(null); }}
+                onClick={resetAll}
                 className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
               >
                 Reset
               </button>
             </div>
+
+            {/* Show origin → destination names */}
+            {(startPointAddress || endPointAddress) && (
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center gap-3">
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-safe shrink-0" />
+                    <p className="text-xs font-bold text-foreground truncate">{startPointAddress || "Origin"}</p>
+                  </div>
+                  <div className="ml-[3px] w-[2px] h-3 bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-danger shrink-0" />
+                    <p className="text-xs font-bold text-foreground truncate">{endPointAddress || "Destination"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white/5 rounded-3xl p-5 border border-white/5">
               <div className="flex justify-between items-center mb-4">
@@ -268,4 +338,3 @@ const RoutesPage = () => {
 };
 
 export default RoutesPage;
-
