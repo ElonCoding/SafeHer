@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MapPin, Calendar, Plus, Share2, ArrowLeft, Send, Clock,
   ChevronRight, Trash2, Navigation, Bell, BellOff, UserPlus, X
@@ -108,6 +108,7 @@ const TripsPage = () => {
   // Create form state
   const [title, setTitle] = useState("");
   const [originPlace, setOriginPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [waypoints, setWaypoints] = useState<(google.maps.places.PlaceResult | null)[]>([]);
   const [destinationPlace, setDestinationPlace] = useState<google.maps.places.PlaceResult | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -128,16 +129,21 @@ const TripsPage = () => {
     if (originPlace?.geometry?.location && destinationPlace?.geometry?.location) {
       calculateOptimizeRoutes();
     }
-  }, [originPlace, destinationPlace]);
+  }, [originPlace, destinationPlace, waypoints]);
 
   const calculateOptimizeRoutes = async () => {
     if (!originPlace?.geometry?.location || !destinationPlace?.geometry?.location) return;
     
     setIsRouting(true);
     try {
+      const validWaypoints = waypoints
+        .filter(w => w?.geometry?.location)
+        .map(w => w!.geometry!.location!);
+
       const recommendations = await getAIOptimizedRoutes(
         originPlace.geometry.location,
-        destinationPlace.geometry.location
+        destinationPlace.geometry.location,
+        validWaypoints
       );
       setRoutes(recommendations);
       if (recommendations.length > 0) {
@@ -153,6 +159,7 @@ const TripsPage = () => {
   const resetForm = () => {
     setTitle("");
     setOriginPlace(null);
+    setWaypoints([]);
     setDestinationPlace(null);
     setRoutes([]);
     setSelectedRouteIndex(null);
@@ -347,13 +354,21 @@ const TripsPage = () => {
 
         {/* Route AI Selection */}
         <div className="glass-card rounded-3xl p-5 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex flex-col items-center gap-0.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-safe" />
-              <div className="w-0.5 h-16 bg-border/50" />
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+          <div className="flex gap-4">
+            {/* Dynamic visual path line */}
+            <div className="flex flex-col items-center mt-6 mb-3">
+              <div className="w-3 h-3 rounded-full bg-safe border-2 border-safe/30 flex-shrink-0" />
+              <div className="w-0.5 flex-1 bg-border/50 my-1 min-h-[4rem]" />
+              {waypoints.map((_, i) => (
+                 <React.Fragment key={`line-${i}`}>
+                    <div className="w-2 h-2 rounded-full bg-secondary flex-shrink-0" />
+                    <div className="w-0.5 flex-1 bg-border/50 my-1 min-h-[4rem]" />
+                 </React.Fragment>
+              ))}
+              <div className="w-3 h-3 rounded-full bg-primary border-2 border-primary/30 flex-shrink-0" />
             </div>
-            <div className="flex-1 space-y-4">
+            
+            <div className="flex-1 space-y-5">
               <AIPlaceSelector
                 id="origin"
                 label="Current Location / Origin"
@@ -362,6 +377,47 @@ const TripsPage = () => {
                 showCurrentLocationAction={true}
                 onPlaceSelect={(place) => setOriginPlace(place)}
               />
+
+              {/* Waypoints */}
+              <AnimatePresence>
+                {waypoints.map((wp, i) => (
+                  <motion.div 
+                    key={`wp-${i}`}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    <div className="flex-1">
+                      <AIPlaceSelector
+                        id={`waypoint-${i}`}
+                        label={`Stop ${i + 1}`}
+                        placeholder="Search for a stopover..."
+                        biasCoords={geo.coords}
+                        onPlaceSelect={(place) => {
+                          const newWp = [...waypoints];
+                          newWp[i] = place;
+                          setWaypoints(newWp);
+                        }}
+                      />
+                    </div>
+                    <button 
+                      onClick={() => setWaypoints(waypoints.filter((_, idx) => idx !== i))} 
+                      className="mt-6 p-2 rounded-full hover:bg-danger/10 text-danger transition-colors shrink-0"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              <button 
+                onClick={() => setWaypoints([...waypoints, null])} 
+                className="text-[11px] font-bold text-secondary flex items-center gap-1 hover:underline uppercase tracking-wide"
+              >
+                <Plus className="w-3 h-3" /> Add Safe Stop
+              </button>
+
               <AIPlaceSelector
                 id="destination"
                 label="Destination"

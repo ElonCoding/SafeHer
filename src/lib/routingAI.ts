@@ -14,6 +14,7 @@ export interface AIRouteRecommendation {
 export const getAIOptimizedRoutes = async (
   origin: google.maps.LatLng | string,
   destination: google.maps.LatLng | string,
+  waypoints: google.maps.LatLng[] = [],
 ): Promise<AIRouteRecommendation[]> => {
   return new Promise((resolve, reject) => {
     if (!window.google) {
@@ -27,6 +28,7 @@ export const getAIOptimizedRoutes = async (
       {
         origin,
         destination,
+        waypoints: waypoints.map(location => ({ location, stopover: true })),
         travelMode: window.google.maps.TravelMode.DRIVING,
         provideRouteAlternatives: true,
         drivingOptions: {
