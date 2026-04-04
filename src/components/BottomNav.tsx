@@ -1,4 +1,4 @@
-import { Home, Map, Shield, Phone, Users, User, AlertTriangle, Luggage, MoreHorizontal, X, Radio } from "lucide-react";
+import { Home, Map, Shield, Phone, Users, User, AlertTriangle, Luggage, MoreHorizontal, X, Radio, MessageSquare } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -12,6 +12,7 @@ const mainItems = [
 ];
 
 const moreItems = [
+  { icon: MessageSquare, label: "Global Chat", path: "/chat" },
   { icon: Radio, label: "Live Track", path: "/live-tracking" },
   { icon: Luggage, label: "Trips", path: "/trips" },
   { icon: AlertTriangle, label: "Incidents", path: "/incidents" },

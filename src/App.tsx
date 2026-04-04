@@ -17,6 +17,7 @@ import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import LiveTrackingPage from "./pages/LiveTrackingPage";
 import SplashPage from "./pages/SplashPage";
+import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/trips" element={<TripsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/live-tracking" element={<LiveTrackingPage />} />
+              <Route path="/chat" element={<ChatPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
