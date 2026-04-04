@@ -40,99 +40,111 @@ const Index = () => {
 
   useRealtimeData("incidents", setDbIncidents);
   return (
-    <div className="relative min-h-screen bg-mesh pb-24">
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 glass-card border-b border-white/5">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/20">
-              <Shield className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-xl font-black tracking-tighter">
-              Safe<span className="text-gradient">Her</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="w-11 h-11 rounded-2xl glass-card flex items-center justify-center hover:bg-white/5 transition-colors">
-              <Bell className="w-5 h-5 text-foreground" />
-            </button>
-            <button className="w-11 h-11 rounded-2xl glass-card flex items-center justify-center hover:bg-white/5 transition-colors">
-              <Share2 className="w-5 h-5 text-foreground" />
-            </button>
-          </div>
-        </div>
+    <div className="relative min-h-screen bg-background overflow-hidden">
+      {/* Edge-to-Edge Background Map */}
+      <div className="fixed inset-0 z-0">
+        <SafeMap className="w-full h-full" incidents={incidents} showHeatmap={true} />
+        {/* Subtle gradient overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-background/40 pointer-events-none" />
       </div>
 
-      {/* Map with incident overlays */}
-      <div className="pt-20">
-        <div className="mx-4 rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
-          <SafeMap className="h-[45vh]" incidents={incidents} />
-        </div>
-      </div>
-
-      {/* Bottom Panel */}
-      <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="relative -mt-10 z-10 px-4 space-y-6 pb-4"
-      >
-        {/* Safety Score + SOS */}
-        <div className="flex items-center justify-between glass-card rounded-[2.5rem] p-5 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)]">
-          <SafetyScore score={72} />
-          <SOSButton />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { icon: "🆘", label: "Quick SOS", desc: "1-tap alert", path: "/sos", color: "from-primary/20 to-primary/5" },
-            { icon: "📍", label: "Live Track", desc: "Real-time", path: "/live-tracking", color: "from-secondary/20 to-secondary/5" },
-            { icon: "🚨", label: "Fake Call", desc: "Escape tool", path: "/sos", color: "from-warning/20 to-warning/5" },
-          ].map((action) => (
-            <div
-              key={action.label}
-              onClick={() => navigate(action.path)}
-              className={`glass-card rounded-3xl p-4 text-center cursor-pointer hover:border-primary/50 transition-all hover:scale-105 bg-gradient-to-br ${action.color}`}
-            >
-              <div className="text-3xl mb-2 drop-shadow-lg">{action.icon}</div>
-              <p className="text-xs font-bold text-foreground mb-1">{action.label}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{action.desc}</p>
+      {/* Foreground HUD Content */}
+      <div className="relative z-10 h-full flex flex-col pt-safe">
+        
+        {/* Floating Header */}
+        <div className="px-4 py-4 mt-2">
+          <div className="glass-card rounded-[2rem] px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(180,80,250,0.5)]">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <h1 className="text-xl font-black tracking-tight text-foreground">
+                Safe<span className="text-primary">Solo</span>
+              </h1>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <Bell className="w-4 h-4 text-foreground" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Nearby Services */}
-        <div className="glass-card rounded-[2rem] p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              Safety Services
-            </h3>
-            <button className="text-xs font-bold text-primary hover:underline">View All</button>
-          </div>
-          <div className="space-y-2">
+        {/* Scrollable Dashboard Elements */}
+        <div className="flex-1 overflow-y-auto px-4 pb-32 space-y-4 scrollbar-none mt-2">
+          
+          {/* Main Status HUD */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="glass-card rounded-[2.5rem] p-5 shadow-2xl border-l-[3px] border-l-safe"
+          >
+            <div className="flex items-center justify-between mb-4">
+               <div>
+                  <p className="text-[10px] uppercase font-black text-safe tracking-widest">System Status</p>
+                  <h2 className="text-2xl font-black text-foreground">Secure</h2>
+               </div>
+               <SafetyScore score={85} />
+            </div>
+            
+            <button onClick={() => navigate("/live-tracking")} className="w-full bg-safe/10 hover:bg-safe/20 text-safe font-bold py-3.5 rounded-[1.5rem] border border-safe/20 flex items-center justify-center gap-2 transition-all">
+               <Share2 className="w-4 h-4" /> Broadcast Live Status
+            </button>
+          </motion.div>
+
+          {/* Quick Tools Grid */}
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 gap-3"
+          >
             {[
-              { emoji: "🏥", name: "AIIMS Hospital", dist: "1.2 km", type: "Hospital" },
-              { emoji: "🚔", name: "Central Police Station", dist: "0.8 km", type: "Police" },
-              { emoji: "🏨", name: "Safe Stay Hotel", dist: "0.5 km", type: "Safe Hotel" },
-            ].map((svc) => (
-              <div key={svc.name} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{svc.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{svc.name}</p>
-                    <p className="text-xs text-muted-foreground">{svc.type} • {svc.dist}</p>
-                  </div>
-                </div>
-                <a href="tel:112" className="text-xs bg-primary/10 text-primary font-bold px-3 py-1.5 rounded-full">
-                  Call
-                </a>
+              { icon: "🆘", label: "Instant SOS", desc: "Alert contacts", path: "/sos", color: "text-danger flex-row" },
+              { icon: "🗺️", label: "AI Routing", desc: "Plan safely", path: "/trips", color: "text-primary flex-row" },
+            ].map((action) => (
+              <div
+                key={action.label}
+                onClick={() => navigate(action.path)}
+                className="glass-card rounded-3xl p-4 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02]"
+              >
+                <div className="text-2xl mb-2">{action.icon}</div>
+                <p className={`text-sm font-black mb-0.5 ${action.color.split(' ')[0]}`}>{action.label}</p>
+                <p className="text-[10px] text-muted-foreground">{action.desc}</p>
               </div>
             ))}
-          </div>
+          </motion.div>
+
+          {/* Real-time Intel */}
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="glass-card rounded-[2rem] p-5"
+          >
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-secondary" />
+                  Area Intelligence
+                </h3>
+             </div>
+             
+             {incidents.slice(0, 3).map((inc, i) => (
+                 <div key={inc.id} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
+                    <div className={`w-2 h-2 rounded-full ${inc.severity === 'high' ? 'bg-danger shadow-[0_0_10px_rgba(255,0,0,0.5)]' : 'bg-warning'}`} />
+                    <div className="flex-1">
+                        <p className="text-xs font-bold text-foreground line-clamp-1">{inc.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{inc.locationName}</p>
+                    </div>
+                 </div>
+             ))}
+             {incidents.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Scanning environment... no recent reports.</p>
+             )}
+          </motion.div>
+
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

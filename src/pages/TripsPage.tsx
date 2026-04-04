@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import AIPlaceSelector from "@/components/AIPlaceSelector";
+import { getAIOptimizedRoutes, type AIRouteRecommendation } from "@/lib/routingAI";
+import SafeMap from "@/components/SafeMap";
 
 type TripStatus = "planned" | "active" | "completed" | "cancelled";
 
@@ -103,8 +107,8 @@ const TripsPage = () => {
 
   // Create form state
   const [title, setTitle] = useState("");
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
+  const [originPlace, setOriginPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [destinationPlace, setDestinationPlace] = useState<google.maps.places.PlaceResult | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -112,11 +116,46 @@ const TripsPage = () => {
   const [newContactName, setNewContactName] = useState("");
   const [newContactPhone, setNewContactPhone] = useState("");
   const [showAddContact, setShowAddContact] = useState(false);
+  
+  // AI Routing state
+  const geo = useGeolocation();
+  const [routes, setRoutes] = useState<AIRouteRecommendation[]>([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState<number | null>(null);
+  const [isRouting, setIsRouting] = useState(false);
+
+  // Auto-calculate routes when locations are selected
+  useEffect(() => {
+    if (originPlace?.geometry?.location && destinationPlace?.geometry?.location) {
+      calculateOptimizeRoutes();
+    }
+  }, [originPlace, destinationPlace]);
+
+  const calculateOptimizeRoutes = async () => {
+    if (!originPlace?.geometry?.location || !destinationPlace?.geometry?.location) return;
+    
+    setIsRouting(true);
+    try {
+      const recommendations = await getAIOptimizedRoutes(
+        originPlace.geometry.location,
+        destinationPlace.geometry.location
+      );
+      setRoutes(recommendations);
+      if (recommendations.length > 0) {
+        setSelectedRouteIndex(0); // Default to safest 
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRouting(false);
+    }
+  };
 
   const resetForm = () => {
     setTitle("");
-    setOrigin("");
-    setDestination("");
+    setOriginPlace(null);
+    setDestinationPlace(null);
+    setRoutes([]);
+    setSelectedRouteIndex(null);
     setStartDate("");
     setEndDate("");
     setNotes("");
@@ -147,17 +186,20 @@ const TripsPage = () => {
   };
 
   const createTrip = async () => {
-    if (!title.trim() || !origin.trim() || !destination.trim() || !startDate || !endDate) {
-      toast.error("Please fill in all required fields");
+    if (!title.trim() || !originPlace || !destinationPlace || !startDate || !endDate) {
+      toast.error("Please fill in all required fields and select locations.");
       return;
     }
 
+    const originName = originPlace.name || originPlace.formatted_address || "Origin";
+    const destName = destinationPlace.name || destinationPlace.formatted_address || "Destination";
+
     if (!isDemo && user) {
-      const { data, error } = await supabase.from("trips").insert({
+      const { error } = await supabase.from("trips").insert({
         user_id: user.id,
         title,
-        origin,
-        destination,
+        origin: originName,
+        destination: destName,
         start_date: startDate,
         end_date: endDate,
         notes,
@@ -172,8 +214,8 @@ const TripsPage = () => {
     const newTrip: Trip = {
       id: Date.now().toString(),
       title,
-      origin,
-      destination,
+      origin: originName,
+      destination: destName,
       startDate,
       endDate,
       status: "planned",
@@ -303,21 +345,89 @@ const TripsPage = () => {
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Weekend in Goa" className="bg-muted/50 border-border/50" />
         </div>
 
-        {/* Route */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Route</label>
-          <div className="flex items-center gap-2">
+        {/* Route AI Selection */}
+        <div className="glass-card rounded-3xl p-5 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
             <div className="flex flex-col items-center gap-0.5">
               <div className="w-2.5 h-2.5 rounded-full bg-safe" />
-              <div className="w-0.5 h-6 bg-border/50" />
+              <div className="w-0.5 h-16 bg-border/50" />
               <div className="w-2.5 h-2.5 rounded-full bg-primary" />
             </div>
-            <div className="flex-1 space-y-2">
-              <Input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Origin city" className="bg-muted/50 border-border/50" />
-              <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Destination city" className="bg-muted/50 border-border/50" />
+            <div className="flex-1 space-y-4">
+              <AIPlaceSelector
+                id="origin"
+                label="Current Location / Origin"
+                placeholder="Where are you starting?"
+                biasCoords={geo.coords}
+                showCurrentLocationAction={true}
+                onPlaceSelect={(place) => setOriginPlace(place)}
+              />
+              <AIPlaceSelector
+                id="destination"
+                label="Destination"
+                placeholder="Where to?"
+                biasCoords={geo.coords}
+                onPlaceSelect={(place) => setDestinationPlace(place)}
+              />
             </div>
           </div>
         </div>
+
+        {/* AI Route Options */}
+        {isRouting ? (
+           <div className="glass-card rounded-2xl p-6 flex flex-col items-center justify-center gap-4 border border-safe/30">
+               <div className="w-8 h-8 rounded-full border-2 border-safe border-t-transparent animate-spin" />
+               <p className="text-sm font-bold text-foreground">AI calculating optimal routes...</p>
+           </div>
+        ) : routes.length > 0 && selectedRouteIndex !== null ? (
+          <div className="space-y-3">
+             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">AI Route Recommendations</h3>
+             <div className="grid gap-3">
+                 {routes.map((rec, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => setSelectedRouteIndex(i)}
+                      className={`glass-card rounded-2xl p-4 cursor-pointer transition-all border-2 ${
+                        selectedRouteIndex === i ? "border-safe bg-safe/5" : "border-transparent hover:border-white/10"
+                      }`}
+                    >
+                        <div className="flex justify-between items-start mb-2">
+                            <Badge className={`text-[10px] uppercase font-black px-2 ${
+                                rec.aiLabel === "Safest & Fastest" ? "bg-safe/20 text-safe" :
+                                rec.aiLabel === "Safest" ? "bg-primary/20 text-primary" :
+                                rec.aiLabel === "Fastest" ? "bg-warning/20 text-warning" :
+                                "bg-muted text-muted-foreground"
+                            }`}>
+                                ✨ {rec.aiLabel}
+                            </Badge>
+                            <span className="text-lg font-black">{Math.round(rec.durationMs / 60000)} min</span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <p className="text-sm font-semibold text-foreground">Via {rec.route.summary}</p>
+                                <p className="text-xs text-muted-foreground">{(rec.distanceMeters / 1000).toFixed(1)} km</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Safety Score</p>
+                                <p className={`text-xl font-black ${rec.safetyScore >= 80 ? 'text-safe' : rec.safetyScore >= 50 ? 'text-warning' : 'text-danger'}`}>
+                                    {rec.safetyScore}/100
+                                </p>
+                            </div>
+                        </div>
+                        {rec.warnings.length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-border/30 flex flex-wrap gap-1">
+                                {rec.warnings.map((w, idx) => (
+                                    <span key={idx} className="text-[9px] bg-danger/10 text-danger px-1.5 py-0.5 rounded-sm flex items-center">
+                                      ⚠️ {w}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                 ))}
+             </div>
+          </div>
+        ) : null}
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">

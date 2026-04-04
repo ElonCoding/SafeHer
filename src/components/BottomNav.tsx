@@ -43,8 +43,8 @@ const BottomNav = () => {
   }, [moreOpen]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 px-2 pb-safe">
-      <div className="flex items-center justify-around py-2">
+    <nav className="fixed bottom-6 left-4 right-4 z-50 glass-dock rounded-[2rem] px-2">
+      <div className="flex items-center justify-around py-3">
         {mainItems.map(({ icon: Icon, label, path, isSOS }) => {
           const active = pathname === path;
           return (

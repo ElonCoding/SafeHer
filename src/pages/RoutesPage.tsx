@@ -6,6 +6,8 @@ import { DEMO_INCIDENTS, type IncidentMarker } from "@/data/incidents";
 import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import { toast } from "sonner";
+import AIPlaceSelector from "@/components/AIPlaceSelector";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const RoutesPage = () => {
   const [incidents, setIncidents] = useState<IncidentMarker[]>([]);
@@ -14,6 +16,7 @@ const RoutesPage = () => {
   const [routePath, setRoutePath] = useState<{ lat: number; lng: number }[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; time: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const geo = useGeolocation();
 
   useEffect(() => {
     supabase
@@ -97,7 +100,37 @@ const RoutesPage = () => {
           <Map className="w-8 h-8 text-secondary drop-shadow-[0_0_10px_rgba(var(--secondary),0.5)]" />
           Safe Routes
         </h1>
-        <p className="text-sm text-muted-foreground font-medium">Click on the map to set your start and end points</p>
+        <p className="text-sm text-muted-foreground font-medium">Search for your origin and destination, or click on the map.</p>
+      </div>
+
+      <div className="mx-4 mb-4 glass-card rounded-[2rem] p-5 space-y-4">
+        <AIPlaceSelector
+          id="route-origin"
+          label="Origin Location"
+          placeholder="Where are you starting?"
+          biasCoords={geo.coords}
+          showCurrentLocationAction={true}
+          onPlaceSelect={(place) => {
+            if (place?.geometry?.location) {
+              setStartPoint(L.latLng(place.geometry.location.lat(), place.geometry.location.lng()));
+            } else {
+              setStartPoint(null);
+            }
+          }}
+        />
+        <AIPlaceSelector
+          id="route-destination"
+          label="Destination"
+          placeholder="Where are you going?"
+          biasCoords={geo.coords}
+          onPlaceSelect={(place) => {
+            if (place?.geometry?.location) {
+              setEndPoint(L.latLng(place.geometry.location.lat(), place.geometry.location.lng()));
+            } else {
+              setEndPoint(null);
+            }
+          }}
+        />
       </div>
 
       <div className="mx-4 rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl relative">

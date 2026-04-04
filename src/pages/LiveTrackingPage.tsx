@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Radio, Users, ArrowLeft, Share2 } from "lucide-react";
+import { MapPin, Radio, Users, ArrowLeft, Share2, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocationSharing, useTrackMultipleLocations } from "@/hooks/useLocationSharing";
@@ -83,59 +83,64 @@ const LiveTrackingPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)]">
+    <div className="flex flex-col h-[calc(100vh-5rem)] bg-background">
       {/* Header */}
-      <div className="glass-card border-b border-border/50 px-4 py-3 flex items-center gap-3 z-10">
-        <button onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+      <div className="glass-card border-b border-border/50 px-4 py-4 flex items-center gap-3 z-10 sticky top-0">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
         </button>
         <div className="flex-1">
-          <h1 className="text-sm font-black text-foreground flex items-center gap-2">
-            <Radio className={`w-4 h-4 ${sharing ? "text-safe animate-pulse" : "text-muted-foreground"}`} />
-            Live Tracking
+          <h1 className="text-base font-black text-foreground flex items-center gap-2">
+            <Radio className={`w-4 h-4 ${sharing ? "text-safe animate-pulse shadow-[0_0_10px_rgba(0,255,100,0.5)]" : "text-muted-foreground"}`} />
+            Solo Sentinel Tracker 
           </h1>
-          <p className="text-[10px] text-muted-foreground">
-            {sharing ? `Broadcasting • ${demoTrackedUsers.length} contacts nearby` : "Start sharing to see contacts"}
+          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+            {sharing ? `Broadcasting • ${demoTrackedUsers.length} observers` : "Network Offline"}
           </p>
         </div>
         {sharing && (
-          <button onClick={shareLink} className="p-2 rounded-lg bg-secondary/10 text-secondary">
+          <button onClick={shareLink} className="p-2.5 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
             <Share2 className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Map */}
-      <div className="flex-1 relative">
+      {/* Map Content */}
+      <div className="flex-1 relative overflow-hidden">
         {sharing && effectivePosition ? (
           <LiveTrackingMap
-            className="h-full"
+            className="w-full h-full"
             trackedUsers={demoTrackedUsers}
             myPosition={effectivePosition}
           />
         ) : (
-          <div className="h-full flex flex-col items-center justify-center gap-6 px-8">
+          <div className="h-full flex flex-col items-center justify-center gap-8 px-6 text-center">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="w-24 h-24 rounded-full bg-secondary/10 flex items-center justify-center"
+              className="relative"
             >
-              <MapPin className="w-12 h-12 text-secondary" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+              <div className="relative w-32 h-32 rounded-[2rem] glass-card flex items-center justify-center border border-primary/30 shadow-2xl">
+                 <Shield className="w-12 h-12 text-primary" />
+              </div>
             </motion.div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-black text-foreground">Live Location Tracking</h2>
-              <p className="text-sm text-muted-foreground">
-                Share your real-time location with trusted contacts. They'll see your position updating on the map.
+            
+            <div className="space-y-3">
+              <h2 className="text-2xl font-black text-foreground max-w-[250px] mx-auto leading-tight">Activate Solo Sentinel</h2>
+              <p className="text-xs text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                Start a secure, real-time broadcast of your physical coordinates to your trusted emergency contacts.
               </p>
             </div>
-            <div className="glass-card rounded-xl p-4 w-full space-y-2">
+            
+            <div className="glass-card rounded-[2rem] p-5 w-full space-y-2 border border-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-safe/10 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-safe" />
+                <div className="w-10 h-10 rounded-full bg-safe/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-safe" />
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">{contacts?.length || 0} Emergency Contacts</p>
-                  <p className="text-[10px] text-muted-foreground">Will see your live position</p>
+                <div className="text-left">
+                  <p className="text-sm font-black text-foreground">{contacts?.length || 0} Registered Observers</p>
+                  <p className="text-[10px] text-muted-foreground">Will be pinged when broadcast starts</p>
                 </div>
               </div>
             </div>
@@ -144,31 +149,26 @@ const LiveTrackingPage = () => {
       </div>
 
       {/* Bottom controls */}
-      <div className="glass-card border-t border-border/50 px-4 py-4">
+      <div className="absolute bottom-6 left-6 right-6 z-20 pointer-events-none">
         <motion.button
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.98 }}
           onClick={sharing ? stopSharing : startSharing}
-          className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`w-full py-4 rounded-full font-black flex items-center justify-center gap-2 transition-all shadow-2xl pointer-events-auto border-2 ${
             sharing
-              ? "bg-destructive text-destructive-foreground"
-              : "bg-primary text-primary-foreground"
-          }`}
+              ? "bg-destructive/90 text-destructive-foreground border-destructive/50"
+              : "bg-primary/90 text-primary-foreground border-primary/50"
+          } backdrop-blur-md`}
         >
           {sharing ? (
             <>
-              <Radio className="w-4 h-4" /> Stop Sharing Location
+              <Radio className="w-5 h-5 animate-pulse" /> TERMINATE BROADCAST
             </>
           ) : (
             <>
-              <MapPin className="w-4 h-4" /> Start Live Tracking
+              <Shield className="w-5 h-5" /> INITIATE SENTINEL MODE
             </>
           )}
         </motion.button>
-        {sharing && (
-          <p className="text-center text-[10px] text-muted-foreground mt-2">
-            Position broadcasts every 5 seconds • Battery-optimized
-          </p>
-        )}
       </div>
     </div>
   );
