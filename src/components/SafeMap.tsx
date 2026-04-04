@@ -57,12 +57,26 @@ interface SafeMapProps {
   incidents?: IncidentMarker[];
   showIncidents?: boolean;
   showHeatmap?: boolean;
+  onMapClick?: (latlng: L.LatLng) => void;
+  startPoint?: L.LatLng | null;
+  endPoint?: L.LatLng | null;
+  routePath?: { lat: number; lng: number }[];
 }
 
-const SafeMap = ({ className, incidents = [], showIncidents = true, showHeatmap = true }: SafeMapProps) => {
+const SafeMap = ({ 
+  className, 
+  incidents = [], 
+  showIncidents = true, 
+  showHeatmap = true,
+  onMapClick,
+  startPoint,
+  endPoint,
+  routePath
+}: SafeMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const incidentLayerRef = useRef<L.LayerGroup | null>(null);
+  const routingLayerRef = useRef<L.LayerGroup | null>(null);
   const heatLayerRef = useRef<any>(null);
   const [heatmapVisible, setHeatmapVisible] = useState(showHeatmap);
 
@@ -72,14 +86,19 @@ const SafeMap = ({ className, incidents = [], showIncidents = true, showHeatmap 
     const map = L.map(mapRef.current, { zoomControl: false }).setView([28.6139, 77.209], 13);
     mapInstance.current = map;
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map);
 
     // User location
     map.locate({ setView: true, maxZoom: 14 });
     map.on("locationfound", (e) => {
       L.marker(e.latlng).addTo(map).bindPopup("📍 You are here");
+    });
+
+    // Handle map clicks
+    map.on("click", (e) => {
+      if (onMapClick) onMapClick(e.latlng);
     });
 
     // Danger zones
@@ -108,16 +127,62 @@ const SafeMap = ({ className, incidents = [], showIncidents = true, showHeatmap 
         .bindPopup(svc.name);
     });
 
-    // Create incident layer group
+    // Create layer groups
     incidentLayerRef.current = L.layerGroup().addTo(map);
+    routingLayerRef.current = L.layerGroup().addTo(map);
 
     return () => {
       map.remove();
       mapInstance.current = null;
       incidentLayerRef.current = null;
+      routingLayerRef.current = null;
       heatLayerRef.current = null;
     };
   }, []);
+
+  // Update routing markers and path
+  useEffect(() => {
+    if (!routingLayerRef.current || !mapInstance.current) return;
+    routingLayerRef.current.clearLayers();
+
+    if (startPoint) {
+      L.marker(startPoint, {
+        icon: L.divIcon({
+          html: `<div style="background:#22C55E;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5)"></div>`,
+          className: "bg-transparent",
+          iconSize: [12, 12],
+        })
+      }).addTo(routingLayerRef.current).bindPopup("Start Point");
+    }
+
+    if (endPoint) {
+      L.marker(endPoint, {
+        icon: L.divIcon({
+          html: `<div style="background:#EF4444;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5)"></div>`,
+          className: "bg-transparent",
+          iconSize: [12, 12],
+        })
+      }).addTo(routingLayerRef.current).bindPopup("End Point");
+    }
+
+    if (routePath && routePath.length > 1) {
+      const latlngs = routePath.map(p => [p.lat, p.lng] as [number, number]);
+      L.polyline(latlngs, {
+        color: "#3B82F6",
+        weight: 5,
+        opacity: 0.8,
+        lineJoin: "round",
+        dashArray: "1, 10"
+      }).addTo(routingLayerRef.current);
+      
+      // Animate path with a solid line on top
+      L.polyline(latlngs, {
+        color: "#3B82F6",
+        weight: 3,
+        opacity: 0.5,
+      }).addTo(routingLayerRef.current);
+    }
+  }, [startPoint, endPoint, routePath]);
 
   // Update incident overlays + heatmap when data changes
   useEffect(() => {
