@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export const useLocationSharing = () => {
   const { user } = useAuth();
@@ -41,20 +42,34 @@ export const useLocationSharing = () => {
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
 
-    // Broadcast position every 5 seconds via realtime channel
-    intervalRef.current = setInterval(() => {
+    // Broadcast position every 5 seconds via realtime channel AND backend
+    intervalRef.current = setInterval(async () => {
       const pos = positionRef.current;
-      if (!pos || !channelRef.current) return;
-      channelRef.current.send({
-        type: "broadcast",
-        event: "location_update",
-        payload: {
-          lat: pos.lat,
-          lng: pos.lng,
-          timestamp: Date.now(),
-          user_id: user.id,
-        },
-      });
+      if (!pos) return;
+
+      // 1. P2P Broadcast for low-latency map updates
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "location_update",
+          payload: {
+            lat: pos.lat,
+            lng: pos.lng,
+            timestamp: Date.now(),
+            user_id: user.id,
+          },
+        });
+      }
+
+      // 2. HTTP Sync for persistence and server-side safety logic
+      try {
+        await api.post("/api/realtime/tracking", { 
+          lat: pos.lat, 
+          lng: pos.lng 
+        });
+      } catch (err) {
+        console.error("Failed to sync location to backend:", err);
+      }
     }, 5000);
 
     setSharing(true);

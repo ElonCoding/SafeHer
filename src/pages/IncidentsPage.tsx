@@ -9,6 +9,7 @@ import { type Category, type Severity, CATEGORIES, SEVERITY_CONFIG } from "@/dat
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
+import { api } from "@/lib/api";
 
 interface Incident {
   id: string;
@@ -49,13 +50,17 @@ const IncidentsPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchIncidents = async () => {
-    const { data, error } = await supabase
-      .from("incidents")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (!error && data) setIncidents(data as unknown as Incident[]);
-    setLoading(false);
+    try {
+      const data = await api.get<Incident[]>("/api/incidents");
+      setIncidents(data);
+    } catch (err) {
+      console.error("Failed to fetch incidents:", err);
+      // Fallback to supabase if API is down
+      const { data } = await supabase.from("incidents").select("*").limit(50);
+      if (data) setIncidents(data as unknown as Incident[]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -84,27 +89,27 @@ const IncidentsPage = () => {
       setView("feed");
       return;
     }
-    const { error } = await supabase.from("incidents").insert({
-      category,
-      severity,
-      title: title.trim(),
-      description: description.trim(),
-      location_name: locationName || "Unknown Location",
-      location_lat: 28.6139,
-      location_lng: 77.209,
-      anonymous,
-      reporter_id: user?.id || null,
-    });
-    if (error) {
-      toast.error("Failed to submit report");
-      return;
+    try {
+      await api.post("/api/incidents", {
+        category,
+        severity,
+        title: title.trim(),
+        description: description.trim(),
+        location_name: locationName || "Unknown Location",
+        location_lat: 28.6139,
+        location_lng: 77.209,
+        anonymous,
+      });
+      
+      toast.success("Incident reported successfully!", {
+        description: "Your report helps keep the community safe.",
+      });
+      resetForm();
+      setView("feed");
+      fetchIncidents();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit report");
     }
-    toast.success("Incident reported successfully!", {
-      description: "Your report helps keep the community safe.",
-    });
-    resetForm();
-    setView("feed");
-    fetchIncidents();
   };
 
   const toggleUpvote = (id: string) => {
