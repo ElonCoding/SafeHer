@@ -85,14 +85,18 @@ const SOSButton = () => {
 
   return (
     <>
-      <motion.button
-        onClick={startSOS}
-        className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-2xl sos-pulse"
-        whileTap={{ scale: 0.9 }}
-        whileHover={{ scale: 1.1 }}
-      >
-        <Shield className="w-9 h-9" />
-      </motion.button>
+      <div className="relative">
+        <motion.button
+          onClick={startSOS}
+          className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_50px_-10px_rgba(255,51,71,0.5)] sos-pulse relative z-10"
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05 }}
+        >
+          <Shield className="w-9 h-9 drop-shadow-lg" />
+        </motion.button>
+        {/* Button ring glow */}
+        <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl -z-0" />
+      </div>
 
       <AnimatePresence>
         {active && (

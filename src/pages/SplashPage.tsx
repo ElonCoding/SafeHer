@@ -32,18 +32,18 @@ const SplashPage = () => {
   const { enterDemoMode } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 overflow-hidden relative">
+    <div className="min-h-screen bg-mesh flex flex-col items-center justify-center px-6 overflow-hidden relative">
       {/* Animated background glow */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.1, 0.05] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/20 blur-[120px]"
         />
         <motion.div
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.05, 0.08, 0.05] }}
-          transition={{ duration: 5, repeat: Infinity }}
-          className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary blur-[100px]"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.15, 0.1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/20 blur-[100px]"
         />
       </div>
 
@@ -51,16 +51,16 @@ const SplashPage = () => {
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", duration: 1, bounce: 0.4 }}
-        className="relative z-10 mb-6"
+        transition={{ type: "spring", duration: 1.5, bounce: 0.4 }}
+        className="relative z-10 mb-8 animate-float"
       >
-        <div className="w-24 h-24 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <Shield className="w-12 h-12 text-primary" />
+        <div className="w-28 h-28 rounded-[2rem] bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-2xl">
+          <Shield className="w-14 h-14 text-primary drop-shadow-[0_0_15px_rgba(255,51,71,0.5)]" />
         </div>
         <motion.div
-          animate={{ scale: [1, 1.3, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute inset-0 rounded-3xl border border-primary/20"
+          animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
+          className="absolute inset-0 rounded-[2rem] border-2 border-primary/30"
         />
       </motion.div>
 
@@ -68,63 +68,57 @@ const SplashPage = () => {
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="relative z-10 text-center mb-10"
+        transition={{ delay: 0.5, duration: 0.8 }}
+        className="relative z-10 text-center mb-12"
       >
-        <h1 className="text-5xl font-black tracking-tight text-foreground">
-          Safe<span className="text-primary">Her</span>
+        <h1 className="text-6xl font-black tracking-tighter text-foreground mb-3">
+          Safe<span className="text-gradient">Her</span>
         </h1>
-        <p className="text-muted-foreground text-sm mt-2 max-w-[250px]">
-          Your safety companion for solo travel
+        <p className="text-muted-foreground text-base font-medium max-w-[280px] mx-auto leading-relaxed">
+          Your intelligent safety companion for solo travel
         </p>
       </motion.div>
 
       {/* Feature cards */}
-      <div className="relative z-10 w-full max-w-sm space-y-3 mb-10">
+      <div className="relative z-10 w-full max-w-sm space-y-4 mb-12">
         {features.map((f, i) => (
           <motion.div
             key={f.label}
             initial={{ x: -40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.5 + i * 0.15 }}
-            className="glass-card rounded-2xl p-4 flex items-center gap-4"
+            transition={{ delay: 0.8 + i * 0.2, duration: 0.5 }}
+            className="glass-card rounded-2xl p-5 flex items-center gap-5 group hover:bg-white/5 transition-colors cursor-default"
           >
-            <div className={`w-11 h-11 rounded-xl ${f.bg} flex items-center justify-center`}>
-              <f.icon className={`w-5 h-5 ${f.color}`} />
+            <div className={`w-12 h-12 rounded-2xl ${f.bg} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform`}>
+              <f.icon className={`w-6 h-6 ${f.color}`} />
             </div>
             <div>
-              <p className="font-bold text-sm text-foreground">{f.label}</p>
-              <p className="text-xs text-muted-foreground">{f.desc}</p>
+              <p className="font-bold text-base text-foreground mb-0.5">{f.label}</p>
+              <p className="text-sm text-muted-foreground leading-snug">{f.desc}</p>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* CTA */}
+      {/* Buttons */}
       <motion.div
-        initial={{ y: 20, opacity: 0 }}
+        initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="relative z-10 w-full max-w-sm space-y-3"
+        transition={{ delay: 1.5, duration: 0.6 }}
+        className="relative z-10 w-full max-w-sm flex flex-col gap-4"
       >
-        <motion.button
-          whileTap={{ scale: 0.97 }}
+        <button
           onClick={() => navigate("/auth")}
-          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black text-base flex items-center justify-center gap-2"
+          className="w-full h-16 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-[0_10px_30px_-10px_rgba(255,51,71,0.5)] hover:shadow-[0_15px_35px_-10px_rgba(255,51,71,0.6)] active:scale-[0.98] transition-all"
         >
-          Get Started
-          <Shield className="w-5 h-5" />
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => { enterDemoMode(); navigate("/"); }}
-          className="w-full py-3 rounded-2xl border border-border text-muted-foreground font-semibold text-sm hover:text-foreground hover:border-primary/50 transition-colors"
+          Secure Sign In
+        </button>
+        <button
+          onClick={enterDemoMode}
+          className="w-full h-16 rounded-2xl glass-card text-foreground font-bold text-lg hover:bg-white/5 active:scale-[0.98] transition-all"
         >
-          Explore Demo Mode →
-        </motion.button>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Protecting women travelers across India 🇮🇳
-        </p>
+          Explore Demo Mode
+        </button>
       </motion.div>
     </div>
   );
